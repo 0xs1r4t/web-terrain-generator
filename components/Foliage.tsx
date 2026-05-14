@@ -32,6 +32,7 @@ function generatePositions(
   count: number,
   td: TerrainData,
   seed: number,
+  slopeThreshold: number,
 ) {
   const rng = mulberry32(seed);
   const hw = (td.width * td.scale) / 2;
@@ -49,8 +50,10 @@ function generatePositions(
     const [, ny] = sampleNormal(td, wx, wz);
     const valid =
       foliageType === "grass"
-        ? ny > 0.5
-        : ny > 0.6 && wy > -td.heightScale && wy < td.heightScale * 1.2;
+        ? ny > slopeThreshold
+        : ny > slopeThreshold &&
+          wy > -td.heightScale &&
+          wy < td.heightScale * 1.2;
     if (!valid) continue;
 
     pos.push(wx, wy, wz);
@@ -77,6 +80,9 @@ interface FoliageProps {
   nearDist?: number;
   farDist?: number;
   seed?: number;
+  slopeThreshold?: number;
+  windSpeed?: number;
+  windStrength?: number;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -89,6 +95,9 @@ export default function Foliage({
   nearDist = foliageType === "grass" ? 8 : 12,
   farDist = foliageType === "grass" ? 25 : 30,
   seed = foliageType === "grass" ? 1 : 2,
+  slopeThreshold = 0.5,
+  windSpeed = 1.0,
+  windStrength = 1.0,
 }: FoliageProps) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
@@ -97,7 +106,13 @@ export default function Foliage({
   const flower2 = useTexture("/textures/flower_2.PNG");
 
   const foliageData = useMemo(() => {
-    const data = generatePositions(foliageType, count, terrainData, seed);
+    const data = generatePositions(
+      foliageType,
+      count,
+      terrainData,
+      seed,
+      slopeThreshold,
+    );
     console.log(`${foliageType}: generated ${data.count} instances`);
     console.log(
       "sample pos:",
@@ -106,7 +121,7 @@ export default function Foliage({
       data.positions[2],
     );
     return data;
-  }, [foliageType, count, terrainData, seed]);
+  }, [foliageType, count, terrainData, seed, slopeThreshold]);
 
   // Build geometry + material together so they share the same foliageData
   // reference and don't go stale.
@@ -161,6 +176,9 @@ export default function Foliage({
         foliageType === "grass" ? grassFragWithColors : flowerFragWithColors,
       uniforms: {
         time: { value: 0 },
+        windSpeed: { value: windSpeed },
+        windStrength: { value: windStrength },
+        lightDir: { value: new THREE.Vector3(20, 30, 10).normalize() },
         nearDist: { value: nearDist },
         farDist: { value: farDist },
         ...(foliageType === "grass"
@@ -171,7 +189,7 @@ export default function Foliage({
             }),
       },
       transparent: true,
-      depthWrite: false,
+      depthWrite: true,
       side: THREE.DoubleSide,
       alphaTest: 0.01,
     });
@@ -195,12 +213,13 @@ export default function Foliage({
     flower2,
   ]);
 
-  // Tick the time uniform every frame
+  // Tick the time uniform every frame, and update wind uniforms for live tweaking.
   useFrame(({ clock }) => {
-    if (meshRef.current) {
-      (meshRef.current.material as THREE.ShaderMaterial).uniforms.time.value =
-        clock.elapsedTime;
-    }
+    const mat = meshRef.current?.material as THREE.ShaderMaterial;
+    if (!mat) return;
+    mat.uniforms.time.value = clock.elapsedTime;
+    mat.uniforms.windSpeed.value = windSpeed; // live update
+    mat.uniforms.windStrength.value = windStrength;
   });
 
   return (

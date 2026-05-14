@@ -10,6 +10,8 @@ varying float HeightFactor;
 varying float WindInfluence;
 
 uniform float time;
+uniform float windSpeed;
+uniform float windStrength;
 
 vec2 hash(vec2 p) {
     p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
@@ -39,8 +41,6 @@ void main() {
         scale = mix(1.0, 0.7, clamp((dist - 15.0) / 30.0, 0.0, 1.0));
     }
 
-    float windSpeed    = 1.2;
-    float windStrength = 0.25;
     vec2 windUV = instanceOffset.xz * 0.5 + time * windSpeed * vec2(0.6, 0.4);
     float wind1    = noise(windUV) * 0.5 + 0.5;
     float wind2    = noise(windUV * 2.5 + time * 0.8) * 0.5 + 0.5;

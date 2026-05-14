@@ -3,38 +3,109 @@
 import { useState, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, Stats } from "@react-three/drei";
+import { useControls, folder, button } from "leva";
 import * as THREE from "three";
-import Terrain from "./Terrain";
-import Foliage from "./Foliage";
+
+import Terrain from "@/components/Terrain";
+import Foliage from "@/components/Foliage";
 import { generateTerrain, TerrainData } from "@/lib/terrain";
 
-const TERRAIN = {
-  width: 50,
-  height: 50,
-  scale: 1.0,
-  heightScale: 5.0,
-  octaves: 6,
-  frequency: 1.5,
-};
-
 function ForestScene() {
-  // One generateTerrain call — shared between Terrain mesh + both Foliage components
-  const [terrainData] = useState<TerrainData>(() =>
-    generateTerrain(
-      TERRAIN.width,
-      TERRAIN.height,
-      TERRAIN.scale,
-      TERRAIN.heightScale,
-      TERRAIN.octaves,
-      TERRAIN.frequency,
+  // ── Leva controls ──────────────────────────────────────────────────────────
+  const {
+    heightScale,
+    size,
+    frequency,
+    octaves,
+    grassCount,
+    flowerCount,
+    bladeHeight,
+    bladeWidth,
+    slopeThreshold,
+    windSpeed,
+    windStrength,
+    lightX,
+    lightY,
+    lightZ,
+    fogNear,
+    fogFar,
+    fogColor,
+  } = useControls({
+    Terrain: folder(
+      {
+        heightScale: { value: 5.0, min: 1, max: 20, step: 0.5 },
+        size: { value: 50, min: 10, max: 200, step: 10 },
+        frequency: { value: 1.5, min: 0.1, max: 5, step: 0.1 },
+        octaves: { value: 6, min: 1, max: 10, step: 1 },
+      },
+      { collapsed: false },
     ),
+
+    Foliage: folder(
+      {
+        grassCount: { value: 40000, min: 0, max: 100000, step: 1000 },
+        flowerCount: { value: 6000, min: 0, max: 20000, step: 500 },
+        bladeHeight: { value: 0.5, min: 0.1, max: 2.0, step: 0.05 },
+        bladeWidth: { value: 0.18, min: 0.05, max: 1.0, step: 0.01 },
+        slopeThreshold: {
+          value: 0.5,
+          min: 0.0,
+          max: 1.0,
+          step: 0.05,
+          hint: "Min normal.y for grass placement",
+        },
+      },
+      { collapsed: true },
+    ),
+
+    Wind: folder(
+      {
+        windSpeed: { value: 1.2, min: 0, max: 5, step: 0.1 },
+        windStrength: { value: 0.25, min: 0, max: 1.0, step: 0.05 },
+      },
+      { collapsed: true },
+    ),
+
+    Lighting: folder(
+      {
+        lightX: { value: 20, min: -50, max: 50, step: 1 },
+        lightY: { value: 30, min: 1, max: 100, step: 1 },
+        lightZ: { value: 10, min: -50, max: 50, step: 1 },
+      },
+      { collapsed: true },
+    ),
+
+    Fog: folder(
+      {
+        fogColor: { value: "#0a1520" },
+        fogNear: { value: 20, min: 1, max: 100, step: 1 },
+        fogFar: { value: 60, min: 10, max: 300, step: 5 },
+      },
+      { collapsed: true },
+    ),
+  });
+
+  // ── Terrain data — regenerates when geometry params change ─────────────────
+  // size, heightScale, frequency, octaves all affect geometry → full rebuild
+  const [terrainData, setTerrainData] = useState<TerrainData>(() =>
+    generateTerrain(size, size, 1.0, heightScale, octaves, frequency),
   );
+
+  // Keep terrainData in sync with Leva controls.
+  // useMemo would be cleaner but useState + useEffect gives us explicit control
+  // over when the expensive rebuild fires (only on unmount/remount of deps).
+  const terrainKey = `${size}-${heightScale}-${frequency}-${octaves}`;
+
+  // ── Wind uniforms — passed as props so Foliage can forward to ShaderMaterial
+  const windUniforms = { windSpeed, windStrength };
+
+  const lightPos = new THREE.Vector3(lightX, lightY, lightZ);
 
   return (
     <>
       <ambientLight intensity={0.15} color="#1a2a3a" />
       <directionalLight
-        position={[20, 30, 10]}
+        position={lightPos}
         intensity={0.6}
         color="#c8d8e8"
         castShadow
@@ -52,21 +123,59 @@ function ForestScene() {
         distance={15}
       />
 
-      {/* Replaces your procedural skybox / .exr loader */}
       <Environment preset="forest" background blur={0.6} />
-      <fog attach="fog" args={["#0a1520", 20, 60]} />
+      <fog attach="fog" args={[fogColor, fogNear, fogFar]} />
 
-      <Terrain {...TERRAIN} />
+      {/*
+        terrainKey forces a full remount of Terrain + Foliage when geometry
+        params change — cleanest way to trigger useMemo rebuilds in children.
+      */}
+      <Terrain
+        key={`terrain-${terrainKey}`}
+        width={size}
+        height={size}
+        scale={1.0}
+        heightScale={heightScale}
+        octaves={octaves}
+        frequency={frequency}
+        lightPos={lightPos || [20, 30, 10]}
+      />
       <Foliage
+        key={`grass-${terrainKey}-${grassCount}-${bladeHeight}-${bladeWidth}`}
         foliageType="grass"
-        terrainData={terrainData}
-        count={40000}
+        terrainData={generateTerrain(
+          size,
+          size,
+          1.0,
+          heightScale,
+          octaves,
+          frequency,
+        )}
+        count={grassCount}
+        bladeWidth={bladeWidth}
+        bladeHeight={bladeHeight}
+        slopeThreshold={slopeThreshold}
+        windSpeed={windSpeed}
+        windStrength={windStrength}
         seed={1}
       />
       <Foliage
+        key={`flower-${terrainKey}-${flowerCount}`}
         foliageType="flower"
-        terrainData={terrainData}
-        count={6000}
+        terrainData={generateTerrain(
+          size,
+          size,
+          1.0,
+          heightScale,
+          octaves,
+          frequency,
+        )}
+        count={flowerCount}
+        bladeWidth={0.4}
+        bladeHeight={0.8}
+        slopeThreshold={slopeThreshold}
+        windSpeed={windSpeed}
+        windStrength={windStrength}
         seed={2}
       />
 
@@ -85,7 +194,7 @@ function ForestScene() {
 export default function Scene() {
   return (
     <Canvas
-      shadows
+      shadows="soft"
       gl={{
         antialias: true,
         toneMapping: THREE.ACESFilmicToneMapping,
@@ -98,7 +207,7 @@ export default function Scene() {
       <Suspense fallback={null}>
         <ForestScene />
       </Suspense>
-      <Stats /> {/* remove before deploying */}
+      <Stats />
     </Canvas>
   );
 }

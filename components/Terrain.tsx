@@ -21,6 +21,7 @@ interface TerrainProps {
   heightScale?: number;
   octaves?: number;
   frequency?: number;
+  lightPos?: THREE.Vector3 | [number, number, number];
 }
 
 const Terrain = forwardRef<TerrainRef, TerrainProps>(function Terrain(
@@ -31,6 +32,7 @@ const Terrain = forwardRef<TerrainRef, TerrainProps>(function Terrain(
     heightScale = 1.0,
     octaves = 10,
     frequency = 0.2,
+    lightPos = [20, 30, 10],
   },
   ref,
 ) {
@@ -58,7 +60,12 @@ const Terrain = forwardRef<TerrainRef, TerrainProps>(function Terrain(
         vertexShader={terrainVert}
         fragmentShader={terrainFragWithColors}
         uniforms={{
-          lightPos: { value: new THREE.Vector3(20, 30, 10) },
+          lightPos: {
+            value:
+              lightPos instanceof THREE.Vector3
+                ? lightPos
+                : new THREE.Vector3(...lightPos),
+          },
           lightColor: { value: new THREE.Vector3(0.8, 0.85, 0.9) },
           viewPos: { value: new THREE.Vector3(0, 8, 18) },
         }}

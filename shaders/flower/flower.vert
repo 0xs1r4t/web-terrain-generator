@@ -4,6 +4,8 @@ attribute float textureIndex;
 attribute float windPhase;
 
 uniform float time;
+uniform float windSpeed;
+uniform float windStrength;
 
 varying vec2  TexCoords;
 varying vec3  Normal;
@@ -37,8 +39,6 @@ void main() {
     vec3 cameraRight = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
     vec3 cameraUp    = vec3(0.0, 1.0, 0.0);
 
-    float windSpeed    = 0.8;
-    float windStrength = 0.15;
     vec2 windUV = instanceOffset.xz * 0.5 + time * windSpeed * vec2(0.6, 0.4);
     float wind1    = noise(windUV) * 0.5 + 0.5;
     float wind2    = noise(windUV * 2.5 + time * 0.8) * 0.5 + 0.5;
