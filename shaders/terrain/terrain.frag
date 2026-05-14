@@ -1,7 +1,7 @@
-attribute vec3 FragPos;
-attribute vec3 Normal;
-attribute vec2 TexCoords;
-attribute vec3 VertexColor;
+varying vec3 FragPos;
+varying vec3 Normal;
+varying vec2 TexCoords;
+varying vec3 VertexColor;
 
 uniform vec3 viewPos;
 uniform vec3 lightPos;
@@ -45,15 +45,14 @@ void main() {
     // Apply cel-shading
     vec3 shadedColor = celShade4Band(
         NdotL,
-        baseColor * 0.4,  // Deep shadow - darker
-        baseColor * 0.65, // Shadow - darker
-        baseColor * 0.85, // Mid - reduced from 1.0
-        baseColor * 1.0   // Highlight - NO BOOST (was 1.15));
+        baseColor * 0.4,
+        baseColor * 0.65,
+        baseColor * 0.85,
+        baseColor * 1.0);
 
-        // Darken steep slopes (ambient occlusion)
-        float slope = norm.y; // 1.0 = flat, 0.0 = cliff
-        shadedColor *= mix(0.5, 1.0, slope);
+    // Darken steep slopes (ambient occlusion)
+    float slope = norm.y; // 1.0 = flat, 0.0 = cliff
+    shadedColor *= mix(0.5, 1.0, slope);
 
-        gl_FragColor = vec4(shadedColor, 1.0);
-    }
-    
+    gl_FragColor = vec4(shadedColor, 1.0);
+}
