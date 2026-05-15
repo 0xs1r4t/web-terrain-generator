@@ -102,8 +102,8 @@ export default function Foliage({
   const meshRef = useRef<THREE.InstancedMesh>(null);
 
   const grassTex = useTexture("/textures/Grass.png");
-  const flower1 = useTexture("/textures/flower_1.PNG");
-  const flower2 = useTexture("/textures/flower_2.PNG");
+  const flower1 = useTexture("/textures/flower_1.png");
+  const flower2 = useTexture("/textures/flower_2.png");
 
   const foliageData = useMemo(() => {
     const data = generatePositions(
