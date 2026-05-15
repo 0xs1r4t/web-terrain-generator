@@ -45,4 +45,5 @@ package-lock.json
 
 # assets
 /public/models
-/public/textures
+# /public/textures
+*.exr
