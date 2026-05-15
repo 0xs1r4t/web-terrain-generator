@@ -3,8 +3,10 @@
 import { useState, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Environment, Stats } from "@react-three/drei";
-import { useControls, folder, button } from "leva";
+import { useControls, folder, button, Leva } from "leva";
 import * as THREE from "three";
+
+import { blueberryTheme } from "@/lib/levaTheme";
 
 import Terrain from "@/components/Terrain";
 import Foliage from "@/components/Foliage";
@@ -203,21 +205,29 @@ function ForestScene() {
 
 export default function Scene() {
   return (
-    <Canvas
-      shadows="soft"
-      gl={{
-        antialias: true,
-        toneMapping: THREE.ACESFilmicToneMapping,
-        toneMappingExposure: 0.8,
-        outputColorSpace: THREE.SRGBColorSpace,
-      }}
-      camera={{ fov: 60, near: 0.1, far: 200, position: [0, 8, 18] }}
-      style={{ width: "100%", height: "100%" }}
-    >
-      <Suspense fallback={null}>
-        <ForestScene />
-      </Suspense>
-      <Stats />
-    </Canvas>
+    <>
+      <Leva
+        theme={blueberryTheme}
+        titleBar={{ title: "🫐 Scene Controls", filter: true, drag: true }}
+        flat={false}
+      />
+      <Canvas
+        shadows="soft"
+        gl={{
+          antialias: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 0.8,
+          outputColorSpace: THREE.SRGBColorSpace,
+        }}
+        camera={{ fov: 60, near: 0.1, far: 200, position: [0, 8, 18] }}
+        style={{ width: "100%", height: "100%" }}
+      >
+        <Suspense fallback={null}>
+          <fogExp2 attach="fogExp2" args={["#10071a", 0.03]} />
+          <ForestScene />
+        </Suspense>
+        <Stats />
+      </Canvas>
+    </>
   );
 }
