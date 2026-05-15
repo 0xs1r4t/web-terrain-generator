@@ -8,6 +8,7 @@ import * as THREE from "three";
 
 import Terrain from "@/components/Terrain";
 import Foliage from "@/components/Foliage";
+import Sky from "@/components/Sky";
 import { generateTerrain, TerrainData } from "@/lib/terrain";
 
 function ForestScene() {
@@ -30,6 +31,8 @@ function ForestScene() {
     fogNear,
     fogFar,
     fogColor,
+    moonElevation,
+    moonAzimuth,
   } = useControls({
     Terrain: folder(
       {
@@ -83,6 +86,13 @@ function ForestScene() {
       },
       { collapsed: true },
     ),
+    Sky: folder(
+      {
+        moonElevation: { value: 35, min: 0, max: 90, step: 1 },
+        moonAzimuth: { value: 200, min: 0, max: 360, step: 1 },
+      },
+      { collapsed: true },
+    ),
   });
 
   // ── Terrain data — regenerates when geometry params change ─────────────────
@@ -123,7 +133,7 @@ function ForestScene() {
         distance={15}
       />
 
-      <Environment preset="forest" background blur={0.6} />
+      <Sky moonElevation={moonElevation} moonAzimuth={moonAzimuth} />
       <fog attach="fog" args={[fogColor, fogNear, fogFar]} />
 
       {/*

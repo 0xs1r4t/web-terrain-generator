@@ -1,12 +1,8 @@
-attribute vec3 aPos;
-
 varying vec3 TexCoords;
 
-uniform mat4 projection;
-uniform mat4 view;
-
 void main() {
-    TexCoords = aPos;
-    vec4 pos = projection * view * vec4(aPos, 1.0);
+    TexCoords = position;
+    mat4 rotView = mat4(mat3(viewMatrix));
+    vec4 pos = projectionMatrix * rotView * vec4(position, 1.0);
     gl_Position = pos.xyww; // Trick to set depth to 1.0
 }
